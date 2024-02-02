@@ -45,7 +45,7 @@ export class DB {
   ): Promise<PDFSimilarityData[]> {
     const query = `
         SELECT 
-          id, content, metadata, vector <-> $1 AS distance 
+          id, content, metadata, vector <=> $1 AS distance 
         FROM pdf_embeddings 
         ORDER BY distance LIMIT $2
       `;

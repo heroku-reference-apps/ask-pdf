@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, ErrorResponse } from '@remix-run/node';
 import type { PDFSimilarityData } from '~/types/pdf';
 
 import { useState } from 'react';
@@ -22,25 +22,36 @@ import {
   IconDatabaseSearch,
   IconBracketsContain,
 } from '@tabler/icons-react';
-
+import { Error } from '~/components/error';
 import { getEmbeddings } from '~/server/ai.server';
 import { similaritySearch } from '~/server/db.server';
 
 interface SearchResults {
+  success?: boolean;
+  reason?: string;
   embeddings: number[];
   results: PDFSimilarityData[];
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-  const search = formData.get('search') as string;
-  const embeddings = await getEmbeddings(search);
-  const results = await similaritySearch(embeddings);
-  const json: SearchResults = {
-    embeddings,
-    results,
-  };
-  return json;
+  try {
+    const formData = await request.formData();
+    const search = formData.get('search') as string;
+    const embeddings = await getEmbeddings(search);
+    const results = await similaritySearch(embeddings);
+    const response: SearchResults = {
+      success: true,
+      embeddings,
+      results,
+    };
+    return response;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    return {
+      success: false,
+      reason: `The application can't connect to the database. Please check database configuration`,
+    };
+  }
 }
 
 export default function PGVectorDemo() {
@@ -50,6 +61,15 @@ export default function PGVectorDemo() {
   const fetcher = useFetcher<SearchResults>();
   const isSubmitting = fetcher.state === 'submitting';
   const data = fetcher.data as SearchResults | undefined;
+
+  if (data?.success === false) {
+    const error: ErrorResponse = {
+      status: 500,
+      data: 'An error ocurred',
+      statusText: data.reason || 'An unknown error ocurred. Please try again.',
+    };
+    return <Error error={error} />;
+  }
 
   return (
     <Container fluid p="lg" w={rem(800)}>
