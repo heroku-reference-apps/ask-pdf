@@ -1,4 +1,5 @@
 # Comment line immediately above ownership line is reserved for related gus information. Please be careful while editing.
-#GUSINFO: "Heroku DevRel", "Heroku DevRel"
+#GUSINFO:FALSE,[{"node":{"name":"JavaScript"},"size":4589},{"node":{"name":"TypeScript"},"size":34644},{"node":{"name":"Shell"},"size":71}]
+*
 #ECCN: EAR99
 *
