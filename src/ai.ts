@@ -82,12 +82,12 @@ export class AI {
       `,
     });
 
-    const retriever = pgVectorStore.asRetriever(4, {
+    const retriever = pgVectorStore.asRetriever(8, {
       source: filter?.filename,
     });
 
     const model = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo-1106',
+      modelName: process.env.OPENAI_MODEL || 'gpt-3.5-turbo-0125',
     });
 
     const chain = new RetrievalQAChain({
@@ -127,6 +127,6 @@ export class AI {
    * @returns {Promise<ChainValues>} A promise that resolves to the response from the AI.
    */
   async query(question: string): Promise<ChainValues> {
-    return this.#chain.call({ question });
+    return this.#chain.invoke({ question });
   }
 }
