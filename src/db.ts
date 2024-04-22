@@ -47,7 +47,7 @@ export class DB {
         SELECT 
           id, content, metadata, vector <=> $1 AS distance 
         FROM pdf_embeddings 
-        ORDER BY distance LIMIT $2
+        ORDER BY distance ASC LIMIT $2
       `;
     const { rows } = await this.query(query, [pgvector.toSql(vector), limit]);
     return rows.map((row) => ({
