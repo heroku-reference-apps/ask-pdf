@@ -68,7 +68,7 @@ export default function App() {
                     position: 'fixed',
                   }}
                 >
-                  PGVector Demo
+                  pgvector Demo
                 </Anchor>
               </Flex>
               <Grid>

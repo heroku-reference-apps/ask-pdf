@@ -7,7 +7,6 @@ import { useFetcher } from 'react-router';
 import {
   Button,
   Card,
-  Code,
   Container,
   Pill,
   Loader,
@@ -22,6 +21,9 @@ import {
   IconDatabaseSearch,
   IconBracketsContain,
 } from '@tabler/icons-react';
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
+import vscDarkPlus from 'react-syntax-highlighter/dist/esm/styles/prism/vsc-dark-plus';
 import { CustomError } from '~/components/error';
 import { getEmbeddings } from '~/server/ai.server';
 import { similaritySearch } from '~/server/db.server';
@@ -32,6 +34,8 @@ interface SearchResults {
   embeddings: number[];
   results: PDFSimilarityData[];
 }
+
+SyntaxHighlighter.registerLanguage('json', json);
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
@@ -55,7 +59,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function PGVectorDemo() {
   const [title, setTitle] = useState<string>('');
-  const [content, setContent] = useState<string | number[] | number>('');
+  const [content, setContent] = useState<string>('');
   const [opened, { open, close }] = useDisclosure();
   const fetcher = useFetcher<SearchResults>();
   const isSubmitting = fetcher.state === 'submitting';
@@ -91,23 +95,17 @@ export default function PGVectorDemo() {
         {data?.results?.length && (
           <Stack mt={10}>
             <Modal title={title} opened={opened} onClose={close} size="xl">
-              <Code
-                block
-                style={{
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                <ScrollArea h={400} type="always" offsetScrollbars>
+              <ScrollArea h={400} type="always" offsetScrollbars>
+                <SyntaxHighlighter language="json" style={vscDarkPlus}>
                   {content}
-                </ScrollArea>
-              </Code>
+                </SyntaxHighlighter>
+              </ScrollArea>
             </Modal>
             <Button
               variant="light"
               onClick={() => {
                 setTitle('Search term embeddings');
-                setContent(data?.embeddings);
+                setContent(JSON.stringify(data?.embeddings, null, 2));
                 open();
               }}
               leftSection={<IconBracketsContain />}

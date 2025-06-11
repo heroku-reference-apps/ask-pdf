@@ -2,9 +2,9 @@
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-Ask questions to a PDF file using [Retrieval-Augmented Generation](https://arxiv.org/abs/2005.11401) with pgvector and OpenAI.
+Ask questions to a PDF file using [Retrieval-Augmented Generation](https://arxiv.org/abs/2005.11401) with pgvector and Heroku Managed Inference and Agents.
 
-![Ask PDF diagram with steps](public/ask-pdf-diagram-readme.jpg)
+![Ask PDF diagram with steps](public/ask-pdf-diagram-readme.png)
 
 ## Requirements
 
@@ -13,6 +13,7 @@ Ask questions to a PDF file using [Retrieval-Augmented Generation](https://arxiv
 - [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
 - PostgreSQL [psql](https://www.postgresql.org/download/) client
 - [AWS Command Line Interface](https://aws.amazon.com/cli/)
+- [pnpm](https://pnpm.io/installation)
 
 ## Installation
 
@@ -28,13 +29,25 @@ Create an Heroku application with:
 heroku create <app-name>
 ```
 
-Install the [Heroku PostgreSQL with pgvector addon](https://elements.heroku.com/addons/heroku-postgresql):
+Provision the [Heroku Postgres with pgvector addon](https://elements.heroku.com/addons/heroku-postgresql):
 
 ```sh
  heroku addons:create heroku-postgresql:essential-0
 ```
 
-Install the [Bucketeer addon](https://elements.heroku.com/addons/bucketeer):
+Provision the [Heroku Managed Inference and Agents add-ons](https://elements.heroku.com/addons/heroku-inference):
+
+**Claude 4 Sonnet** for inference and **Cohere Embed Multilingual** for embeddings.
+
+```sh
+ heroku ai:models:create claude-4-sonnet --as INFERENCE
+```
+
+```sh
+ heroku ai:models:create cohere-embed-multilingual --as EMBEDDING
+```
+
+Provision the [Bucketeer addon](https://elements.heroku.com/addons/bucketeer):
 
 ```sh
  heroku addons:create bucketeer:hobbyist
@@ -43,7 +56,7 @@ Install the [Bucketeer addon](https://elements.heroku.com/addons/bucketeer):
 Once the PostgreSQL database is created, setup the database schema with:
 
 ```sh
-heroku pg:psql < data/database.sql
+heroku pg:psql -f data/database.sql
 ```
 
 Setup Bucketeer public policy, make sure to replace `<bucket-name>` and run:
@@ -83,7 +96,7 @@ aws configure
 
 ## Run in Development
 
-Create a `.env` file with the following information:
+Create a `.env` file with the following information, you can use `.env.sample` as a template:
 
 ```sh
 BUCKETEER_AWS_ACCESS_KEY_ID=<value>
@@ -91,25 +104,24 @@ BUCKETEER_AWS_REGION=us-east-1
 BUCKETEER_AWS_SECRET_ACCESS_KEY=<value>
 BUCKETEER_BUCKET_NAME=<value>
 DATABASE_URL=<value>
-OPENAI_API_KEY=<value>
+EMBEDDING_KEY=<value>
+EMBEDDING_MODEL_ID=cohere-embed-multilingual
+EMBEDDING_URL='https://us.inference.heroku.com'
+INFERENCE_KEY=<value>
+INFERENCE_MODEL_ID=claude-4-sonnet
+INFERENCE_URL='https://us.inference.heroku.com'
 ```
 
-Note: `BUCKETEER_*` and `DATABASE_URL` can be fetched from Heroku using:
+Note: This configuration variables can be fetched from Heroku using:
 
 ```sh
 heroku config --shell > .env
 ```
 
-The `OPENAI_API_KEY` can be set using:
-
-```sh
-heroku config:set OPENAI_API_KEY=<value>
-```
-
 Run the project locally with:
 
 ```sh
-npm run dev
+pnpm run dev
 ```
 
 ## Manual Deployment

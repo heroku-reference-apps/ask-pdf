@@ -1,21 +1,12 @@
 {
   "name": "Ask PDF",
-  "description": "Ask question to a PDF file using AI and pgvector.",
+  "description": "Ask question to a PDF file using Heroku AI and pgvector.",
   "repository": "https://github.com/heroku-reference-apps/ask-pdf",
-  "keywords": ["nodejs", "ai", "pgvector", "langchain", "remix"],
-  "addons": ["heroku-postgresql:essential-0", "bucketeer:hobbyist"],
-  "environments": {
-    "production": {
-      "env": {
-        "OPENAI_API_KEY": {
-          "required": true
-        }
-      }
-    },
-    "test": {
-      "env": {
-        "OPENAI_API_KEY": "test_key"
-      }
-    }
-  }
+  "keywords": ["nodejs", "ai", "pgvector", "langchain", "react-router"],
+  "addons": [
+    "heroku-postgresql:essential-0",
+    "bucketeer:hobbyist",
+    "heroku-inference:claude-4-sonnet",
+    "heroku-inference:cohere-embed-multilingual"
+  ]
 }

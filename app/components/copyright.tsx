@@ -4,7 +4,7 @@ export const Copyright = () => {
   return (
     <Flex justify="center" align="center" direction="column" mt="xl">
       <Text c="dimmed" size="xs">
-        &copy; 2023{' '}
+        &copy; 2025{' '}
         <Anchor href="https://heroku.com/home" target="_blank">
           Heroku
         </Anchor>

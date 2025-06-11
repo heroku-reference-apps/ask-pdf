@@ -88,7 +88,9 @@ export class AI {
 
     const retriever = pgVectorStore.asRetriever({
       k: 8,
-      filter: filter?.filename ? { source: filter.filename } : undefined,
+      filter: filter?.filename
+        ? { source: { $like: `%${filter.filename}%` } }
+        : undefined,
     });
 
     const model = new HerokuMia();
