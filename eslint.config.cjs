@@ -86,6 +86,8 @@ module.exports = [
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         queueMicrotask: 'readonly',
+        Request: 'readonly',
+        AbortController: 'readonly',
       },
     },
     plugins: {

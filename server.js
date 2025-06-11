@@ -1,131 +1,112 @@
-import fs from 'node:fs';
+import 'dotenv/config';
 import url from 'node:url';
 import path from 'node:path';
 import fastify from 'fastify';
-import { createRequestHandler } from '@react-router/node';
-import { broadcastDevReady, installGlobals } from 'react-router';
-import { fastifyEarlyHints } from '@fastify/early-hints';
-import { fastifyStatic } from '@fastify/static';
-
-installGlobals();
+import fastifyStatic from '@fastify/static';
+import { createRequestHandler } from 'react-router';
+import { createReadableStreamFromReadable } from '@react-router/node';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const BUILD_PATH = './build/server/index.js';
-const VERSION_PATH = './build/version.txt';
 
-/** @typedef {import('react-router').ServerBuild} ServerBuild */
+const BUILD_SERVER_PATH = path.resolve(__dirname, './build/server/index.js');
+const BUILD_CLIENT_ASSETS_PATH = path.resolve(
+  __dirname,
+  './build/client/assets'
+);
+const PUBLIC_PATH = path.resolve(__dirname, 'public');
 
-/** @type {ServerBuild} */
-const initialBuild = await import(BUILD_PATH);
+/**
+ * @param {import('fastify').FastifyRequest} request
+ * @param {import('fastify').FastifyReply} reply
+ * @returns {Request}
+ */
+function createReactRouterRequest(request, reply) {
+  const url = new URL(request.url, `${request.protocol}://${request.hostname}`);
+  const controller = new AbortController();
+  reply.raw.on('close', () => controller.abort());
 
-let reactRouterHandler;
-
-if (process.env.NODE_ENV === 'development') {
-  reactRouterHandler = await createDevRequestHandler(initialBuild);
-} else {
-  reactRouterHandler = createRequestHandler({
-    build: initialBuild,
-    mode: initialBuild.mode,
-  });
-}
-
-// Create a Fastify-compatible handler
-function createFastifyHandler(handler) {
-  return async (request, reply) => {
-    const req = request.raw;
-    const res = reply.raw;
-
-    return handler(req, res);
+  const init = {
+    method: request.method,
+    headers: request.headers,
+    signal: controller.signal,
   };
-}
 
-const handler = createFastifyHandler(reactRouterHandler);
+  if (
+    request.method.toLowerCase() !== 'get' &&
+    request.method.toLowerCase() !== 'head'
+  ) {
+    init.body = createReadableStreamFromReadable(request.raw);
+    init.duplex = 'half';
+  }
 
-const app = fastify();
-
-const noopContentParser = (_request, payload, done) => {
-  done(null, payload);
-};
-
-app.addContentTypeParser('application/json', noopContentParser);
-app.addContentTypeParser('*', noopContentParser);
-
-await app.register(fastifyEarlyHints, { warn: true });
-
-await app.register(fastifyStatic, {
-  root: path.join(__dirname, 'public'),
-  prefix: '/',
-  wildcard: false,
-  cacheControl: true,
-  dotfiles: 'allow',
-  etag: true,
-  maxAge: '1h',
-  serveDotFiles: true,
-  lastModified: true,
-});
-
-await app.register(fastifyStatic, {
-  root: path.join(__dirname, 'build', 'client'),
-  prefix: '/assets',
-  wildcard: true,
-  decorateReply: false,
-  cacheControl: true,
-  dotfiles: 'allow',
-  etag: true,
-  maxAge: '1y',
-  immutable: true,
-  serveDotFiles: true,
-  lastModified: true,
-});
-
-app.all('*', async (request, reply) => {
-  return handler(request, reply);
-});
-
-const port = process.env.PORT ? Number(process.env.PORT) || 3000 : 3000;
-
-const address = await app.listen({ port, host: '::' });
-console.log(`✅ app ready: ${address}`);
-
-if (process.env.NODE_ENV === 'development') {
-  await broadcastDevReady(initialBuild);
+  return new Request(url.href, init);
 }
 
 /**
- * @param {ServerBuild} initialBuild
- * @returns {Promise<import('@react-router/node').RequestHandler>}
+ * @param {import('fastify').FastifyInstance} app
  */
-async function createDevRequestHandler(initialBuild) {
-  let build = initialBuild;
+async function attachSSR(app) {
+  const build = await import(BUILD_SERVER_PATH);
+  const handler = createRequestHandler(build, process.env.NODE_ENV);
 
-  async function handleServerUpdate() {
-    // 1. re-import the server build
-    build = await reimportServer();
-    // 2. tell React Router that this app server is now up-to-date and ready
-    await broadcastDevReady(build);
+  app.all('*', async (request, reply) => {
+    try {
+      const reactRouterRequest = createReactRouterRequest(request, reply);
+      const response = await handler(reactRouterRequest);
+
+      reply.status(response.status);
+      if (response.headers) {
+        for (const [key, value] of response.headers.entries()) {
+          reply.header(key, value);
+        }
+      }
+
+      return reply.send(response.body);
+    } catch (error) {
+      console.error(error);
+      return reply.status(500).send('Internal Server Error');
+    }
+  });
+}
+
+async function main() {
+  const app = fastify({
+    logger: {
+      level: process.env.LOG_LEVEL || 'info',
+    },
+  });
+
+  // Serve static assets from 'build/client/assets' directory.
+  // These are fingerprinted, so they can be cached forever.
+  await app.register(fastifyStatic, {
+    root: BUILD_CLIENT_ASSETS_PATH,
+    prefix: '/assets',
+    wildcard: false,
+    immutable: true,
+    maxAge: '1y',
+  });
+
+  // Serve other static assets from 'public' folder.
+  await app.register(fastifyStatic, {
+    root: PUBLIC_PATH,
+    prefix: '/',
+    wildcard: false,
+    decorateReply: false,
+  });
+
+  // Attach the server-side rendering handler.
+  await attachSSR(app);
+
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const host = process.env.HOST || '0.0.0.0';
+
+  try {
+    const address = await app.listen({ port, host });
+    console.log(`✅ Fastify server listening on ${address}`);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
   }
-
-  const chokidar = await import('chokidar');
-  chokidar
-    .watch(VERSION_PATH, { ignoreInitial: true })
-    .on('add', handleServerUpdate)
-    .on('change', handleServerUpdate);
-
-  return async (request, reply) => {
-    return createRequestHandler({
-      build: await build,
-      mode: 'development',
-    })(request, reply);
-  };
 }
 
-/** @returns {Promise<ServerBuild>} */
-async function reimportServer() {
-  const stat = fs.statSync(BUILD_PATH);
-
-  // convert build path to URL for Windows compatibility with dynamic `import`
-  const BUILD_URL = url.pathToFileURL(BUILD_PATH).href;
-
-  // use a timestamp query parameter to bust the import cache
-  return import(BUILD_URL + '?t=' + stat.mtimeMs);
-}
+main();
