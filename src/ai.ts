@@ -116,6 +116,12 @@ export class AI {
    */
   async vectorizePDF(filename: string) {
     const docs = await PDFUtils.loadPDF(filename);
+
+    if (!docs || docs.length === 0) {
+      console.log('No documents found to vectorize.');
+      return;
+    }
+
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 500,
       chunkOverlap: 0,
