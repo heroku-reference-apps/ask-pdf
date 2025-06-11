@@ -4,7 +4,7 @@ import path from 'node:path';
 import { createWriteStream } from 'node:fs';
 import { Upload } from '@aws-sdk/lib-storage';
 import { S3 } from '@aws-sdk/client-s3';
-import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 

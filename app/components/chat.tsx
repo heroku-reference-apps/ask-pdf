@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import type { ChatData } from '~/types/chat';
-import { useState, useRef, useEffect, useContext } from 'react';
-import { useFetcher } from '@remix-run/react';
+import { useState, useRef, useEffect, useContext, useCallback } from 'react';
+import { useFetcher } from 'react-router';
 import {
   useMantineTheme,
   Box,
@@ -66,17 +66,19 @@ export const Chat = () => {
   const response = fetcher.data?.response;
   const errors = fetcher.data?.errors;
 
-  useEffect(() => {
-    if (response) {
-      setAnswer(response.text);
-    }
-
-    if (isSubmitting) {
+  const handleResponseChange = useCallback(() => {
+    if (response?.answer) {
+      setAnswer(response.answer);
+    } else if (isSubmitting) {
       setAnswer('');
     } else {
       formRef.current?.reset();
     }
   }, [response, isSubmitting]);
+
+  useEffect(() => {
+    handleResponseChange();
+  }, [handleResponseChange]);
 
   const handleReset = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

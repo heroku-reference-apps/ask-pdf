@@ -1,9 +1,9 @@
-import type { MetaFunction, ErrorResponse } from '@remix-run/node';
+import type { MetaFunction, ErrorResponse } from 'react-router';
 import {
   useRouteError,
   isRouteErrorResponse,
   useLoaderData,
-} from '@remix-run/react';
+} from 'react-router';
 
 import { Grid } from '@mantine/core';
 import { StateContextProvider } from '~/components/state';
@@ -14,7 +14,7 @@ import { CustomError } from '~/components/error';
 import { listPDFs } from '~/server/db.server';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Ask PDF | Heroku at AWS re:Invent' }];
+  return [{ title: 'Ask PDF - Heroku Managed Inference and Agents' }];
 };
 
 export async function loader() {
@@ -23,8 +23,7 @@ export async function loader() {
     return {
       documents,
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: unknown) {
+  } catch (_err: unknown) {
     throw new Response('An error ocurred', {
       status: 500,
       statusText: `The application can't connect to the database. Please check database configuration`,

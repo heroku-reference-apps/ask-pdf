@@ -1,4 +1,5 @@
 .cache/
+.react-router/
 node_modules/
 build/
 dist/

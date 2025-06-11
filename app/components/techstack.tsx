@@ -3,12 +3,11 @@ export const Techstack = () => {
   const theme = useMantineTheme();
   const techStack = [
     'Node.js',
+    'Heroku Managed Inference and Agents',
     'Heroku Postgres',
     'pgvector',
     'LangChain',
-    'OpenAI',
-    'Remix',
-    'Heroku Pipelines',
+    'React Router v7',
   ];
 
   return (

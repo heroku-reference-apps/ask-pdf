@@ -1,5 +1,5 @@
-import type { ActionFunctionArgs } from '@remix-run/node';
-import { json, redirect } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
+import { redirect } from 'react-router';
 
 import { AI } from '~/src/ai';
 import { PDFUtils } from '~/src/pdf';
@@ -17,7 +17,7 @@ export async function action({ request }: ActionFunctionArgs) {
       const errors = {
         filename: 'Please upload a PDF',
       };
-      return json({ errors });
+      return Response.json({ errors });
     }
 
     const question = formData.get('question') as string;
@@ -25,6 +25,6 @@ export async function action({ request }: ActionFunctionArgs) {
       filename: PDFUtils.getFileName(filename),
     });
     const response = await ai.query(question);
-    return json({ response });
+    return Response.json({ response });
   }
 }

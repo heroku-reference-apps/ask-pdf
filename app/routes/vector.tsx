@@ -1,9 +1,9 @@
-import type { ActionFunctionArgs, ErrorResponse } from '@remix-run/node';
+import type { ActionFunctionArgs, ErrorResponse } from 'react-router';
 import type { PDFSimilarityData } from '~/types/pdf';
 
 import { useState } from 'react';
 import { useDisclosure } from '@mantine/hooks';
-import { useFetcher } from '@remix-run/react';
+import { useFetcher } from 'react-router';
 import {
   Button,
   Card,
@@ -45,8 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
       results,
     };
     return response;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: unknown) {
+  } catch (_err: unknown) {
     return {
       success: false,
       reason: `The application can't connect to the database. Please check database configuration`,

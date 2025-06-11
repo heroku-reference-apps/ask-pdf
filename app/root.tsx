@@ -1,17 +1,9 @@
 import '@mantine/core/styles.css';
 
-import type { LinksFunction } from '@remix-run/node';
+import type { LinksFunction } from 'react-router';
 import type { MantineColorsTuple } from '@mantine/core';
 
-import { cssBundleHref } from '@remix-run/css-bundle';
-import {
-  Links,
-  LiveReload,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import {
   MantineProvider,
   createTheme,
@@ -24,8 +16,6 @@ import {
 } from '@mantine/core';
 import { About } from '~/components/about';
 import { Copyright } from '~/components/copyright';
-
-import styles from './style.css';
 
 const herokuPurple: MantineColorsTuple = [
   '#f4ebff',
@@ -47,10 +37,7 @@ const theme = createTheme({
   primaryColor: 'myColor',
 });
 
-export const links: LinksFunction = () => [
-  ...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
-  { rel: 'stylesheet', href: styles },
-];
+export const links: LinksFunction = () => [];
 
 export default function App() {
   return (
@@ -90,7 +77,6 @@ export default function App() {
               <Copyright />
             </Container>
             <ScrollRestoration />
-            <LiveReload />
             <Scripts />
           </MantineProvider>
         </main>

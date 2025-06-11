@@ -1,11 +1,11 @@
-import type { ChainValues } from 'langchain/schema';
-
-import { OpenAIEmbeddings, ChatOpenAI } from '@langchain/openai';
+import { HerokuMiaEmbeddings, HerokuMia } from 'heroku-langchain';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PromptTemplate } from '@langchain/core/prompts';
-import { RetrievalQAChain, loadQAStuffChain } from 'langchain/chains';
+import { createRetrievalChain } from 'langchain/chains/retrieval';
+import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
 import { PDFUtils } from '~/src/pdf';
+import { Runnable } from '@langchain/core/runnables';
 
 type FilterParams = {
   filename: string;
@@ -13,20 +13,20 @@ type FilterParams = {
 
 type AIOptions = {
   pgVectorStore: PGVectorStore;
-  chain: RetrievalQAChain;
+  chain: Runnable;
   filter?: FilterParams;
 };
 
 export class AI {
   #pgVectorStore: PGVectorStore;
-  #chain: RetrievalQAChain;
+  #chain: Runnable;
 
   /**
    * Creates a new instance of the AI class.
    *
    * @param {AIOptions} options - The options to use when creating the AI instance.
    * @param {PGVectorStore} options.pgVectorStore - The PGVectorStore instance to use for storing vectors.
-   * @param {Chain} options.chain - The Chain instance to use for sending questions to the AI.
+   * @param {Runnable} options.chain - The Chain instance to use for sending questions to the AI.
    */
   constructor({ pgVectorStore, chain }: AIOptions) {
     this.#pgVectorStore = pgVectorStore;
@@ -40,7 +40,7 @@ export class AI {
    * @returns {Promise<AI>} A promise that resolves to the built AI instance.
    */
   static getEmbeddings(text: string) {
-    const embeddings = new OpenAIEmbeddings();
+    const embeddings = new HerokuMiaEmbeddings();
     return embeddings.embedQuery(text);
   }
 
@@ -62,42 +62,47 @@ export class AI {
     };
 
     const pgVectorStore = await PGVectorStore.initialize(
-      new OpenAIEmbeddings(),
+      new HerokuMiaEmbeddings(),
       pgOptions
     );
 
-    const promptTemplate = new PromptTemplate({
-      inputVariables: ['context', 'question'],
-      template: `You are given a context from a PDF file and a question. Try to answer the question based on the provided context. 
+    const promptTemplate =
+      PromptTemplate.fromTemplate(`You are an AI assistant helping users understand content from PDF documents. Your task is to provide accurate, concise answers based solely on the provided context.
+
+      Guidelines:
+      - Answer using only information from the provided context
+      - Be direct and concise in your responses
+      - If the context doesn't contain enough information to answer, respond with "I cannot answer this question based on the provided context"
+      - If the question is unclear, ask for clarification
+      - Maintain a professional and helpful tone
       
-      If you don't know the answer, say. "Sorry, I don't know the answer". 
-      
-      The provided context is:
+      Context from PDF:
       ------
       {context}
       ------
 
-      And the question: {question}
+      Question: {input}
+
       Answer:
-      `,
+      `);
+
+    const retriever = pgVectorStore.asRetriever({
+      k: 8,
+      filter: filter?.filename ? { source: filter.filename } : undefined,
     });
 
-    const retriever = pgVectorStore.asRetriever(8, {
-      source: filter?.filename,
+    const model = new HerokuMia();
+
+    // Create the document combination chain
+    const combineDocsChain = await createStuffDocumentsChain({
+      llm: model,
+      prompt: promptTemplate,
     });
 
-    const model = new ChatOpenAI({
-      modelName: process.env.OPENAI_MODEL || 'gpt-3.5-turbo-0125',
-    });
-
-    const chain = new RetrievalQAChain({
-      combineDocumentsChain: loadQAStuffChain(model, {
-        prompt: promptTemplate,
-      }),
+    // Create the retrieval chain
+    const chain = await createRetrievalChain({
       retriever,
-      returnSourceDocuments: false,
-      inputKey: 'question',
-      verbose: true,
+      combineDocsChain,
     });
 
     return new AI({ pgVectorStore, chain, filter });
@@ -124,9 +129,9 @@ export class AI {
    * Sends a question to the AI and returns the response.
    *
    * @param {string} question - The question to ask the AI.
-   * @returns {Promise<ChainValues>} A promise that resolves to the response from the AI.
+   * @returns {Promise<string>} A promise that resolves to the response from the AI.
    */
-  async query(question: string): Promise<ChainValues> {
-    return this.#chain.invoke({ question });
+  async query(question: string): Promise<string> {
+    return this.#chain.invoke({ input: question });
   }
 }

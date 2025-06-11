@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useMantineTheme, Loader, FileInput } from '@mantine/core';
-import { useFetcher } from '@remix-run/react';
+import { useFetcher } from 'react-router';
 import { IconFileTypePdf } from '@tabler/icons-react';
 
 export const PDFForm = () => {

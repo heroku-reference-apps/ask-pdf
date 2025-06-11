@@ -1,5 +1,5 @@
 import { Container, Title, Text } from '@mantine/core';
-import type { ErrorResponse } from '@remix-run/node';
+import type { ErrorResponse } from 'react-router';
 
 export function CustomError({ error }: { error: ErrorResponse }) {
   return (
