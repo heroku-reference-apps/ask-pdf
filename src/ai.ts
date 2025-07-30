@@ -33,17 +33,17 @@ export class AI {
     this.#chain = chain;
   }
 
+  static getEmbeddings(text: string) {
+    const embeddings = new HerokuMiaEmbeddings();
+    return embeddings.embedQuery(text);
+  }
+  
   /**
    * Builds an AI instance with the specified filter parameters.
    *
    * @param {FilterParams} [filter] - The filter parameters to use when building the AI instance.
    * @returns {Promise<AI>} A promise that resolves to the built AI instance.
    */
-  static getEmbeddings(text: string) {
-    const embeddings = new HerokuMiaEmbeddings();
-    return embeddings.embedQuery(text);
-  }
-
   static async build(filter?: FilterParams) {
     const pgOptions = {
       postgresConnectionOptions: {
